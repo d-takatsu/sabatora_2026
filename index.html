@@ -1304,19 +1304,45 @@
         return;
       }
 
-      const rows = [["日時", "取引番号", "商品名", "単価", "数量", "小計", "取引合計"]];
+      const rows = [
+        ["SABATORA 物販レジ"],
+        ["日付", state.todayKey],
+        [],
+        ["本日の在庫"],
+        ["商品名", "総在庫", "販売済み", "残数"]
+      ];
+
+      products.forEach((product) => {
+        const initialStock = getInitialStock(product.id);
+        const soldQty = getSoldQty(product.id);
+        const remainingQty = getRemainingQty(product.id);
+        rows.push([
+          product.name,
+          initialStock === null ? "" : initialStock,
+          soldQty,
+          remainingQty === null ? "" : remainingQty
+        ]);
+      });
+
+      rows.push(
+        [],
+        ["取引別販売履歴"],
+        ["日時", "取引番号", "商品名", "単価(税込)", "数量", "小計(税込)", "取引合計(税込)"]
+      );
+
       state.sales.forEach((sale) => {
-        sale.items.forEach((item) => {
+        sale.items.forEach((item, index) => {
           rows.push([
-            formatDateTime(sale.timestamp),
-            sale.id,
+            index === 0 ? formatDateTime(sale.timestamp) : "",
+            index === 0 ? sale.id : "",
             item.name,
             item.price,
             item.qty,
             item.subtotal,
-            sale.total
+            index === 0 ? sale.total : ""
           ]);
         });
+        rows.push([]);
       });
 
       const csv = "\uFEFF" + rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
