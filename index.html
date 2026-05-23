@@ -55,7 +55,7 @@
     }
 
     .app {
-      width: min(1120px, 100%);
+      width: min(560px, 100%);
       margin: 0 auto;
       padding: 12px;
       padding-bottom: calc(28px + env(safe-area-inset-bottom));
@@ -204,7 +204,7 @@
 
     .product-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 8px;
     }
 
@@ -274,6 +274,41 @@
       white-space: nowrap;
     }
 
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .stock-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 8px;
+      color: #143642;
+      background: #dff5ea;
+      border: 1px solid #95d9b6;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 950;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .stock-badge.low {
+      color: #7a3d00;
+      background: #fff0cc;
+      border-color: #f0b94d;
+    }
+
+    .stock-badge.soldout,
+    .stock-badge.over {
+      color: #fff;
+      background: var(--red);
+      border-color: var(--red);
+    }
+
     .side-stack {
       display: grid;
       gap: 12px;
@@ -281,9 +316,47 @@
     }
 
     .cart-panel,
-    .history-panel {
+    .history-panel,
+    .inventory-panel {
       padding: 12px;
       min-width: 0;
+    }
+
+    .details-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 52px;
+      margin: -12px;
+      padding: 12px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .details-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .details-title {
+      font-size: 17px;
+      font-weight: 950;
+      line-height: 1.25;
+    }
+
+    .details-badge {
+      flex: none;
+      padding: 7px 10px;
+      color: #fff;
+      background: var(--navy);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .details-body {
+      padding-top: 20px;
     }
 
     .cart-list {
@@ -336,6 +409,14 @@
       font-size: 23px;
       font-weight: 950;
       line-height: 1;
+    }
+
+    .icon-button:disabled,
+    .product-button:disabled {
+      color: #98a2b3;
+      background: #f3f4f6;
+      border-color: #e4e7ec;
+      box-shadow: none;
     }
 
     .icon-button:active,
@@ -447,6 +528,81 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    .inventory-panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 22px rgba(21, 25, 34, 0.08);
+    }
+
+    .inventory-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .inventory-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      background: #f9fafb;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .inventory-name {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 850;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .inventory-remain {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 5px 8px;
+      color: #143642;
+      background: #dff5ea;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .inventory-remain.unset {
+      color: var(--muted);
+      background: #eef0f2;
+    }
+
+    .inventory-remain.low {
+      color: #7a3d00;
+      background: #fff0cc;
+    }
+
+    .inventory-remain.soldout,
+    .inventory-remain.over {
+      color: #fff;
+      background: var(--red);
+    }
+
+    .stock-input {
+      width: 100%;
+      min-height: 48px;
+      padding: 8px;
+      color: var(--ink);
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      font-size: 20px;
+      font-weight: 950;
+      text-align: center;
+    }
+
     table {
       width: 100%;
       min-width: 620px;
@@ -515,18 +671,8 @@
         padding-left: 16px;
       }
 
-      .layout {
-        grid-template-columns: minmax(0, 1.2fr) minmax(330px, 0.8fr);
-        align-items: start;
-      }
-
-      .side-stack {
-        position: sticky;
-        top: 154px;
-      }
-
       .product-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: 1fr;
       }
     }
 
@@ -578,29 +724,40 @@
           <button class="checkout-button" id="checkoutButton" type="button">会計確定</button>
         </section>
 
-        <section class="history-panel" aria-label="本日の販売履歴">
+        <details class="history-panel" aria-label="本日の販売履歴">
+          <summary class="details-summary">
+            <span class="details-title">本日の販売</span>
+            <span class="details-badge">管理</span>
+          </summary>
+          <div class="details-body">
+            <div class="stats">
+              <div class="stat">
+                <span class="stat-label">売上合計</span>
+                <span class="stat-value" id="salesTotal">¥0</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">販売件数</span>
+                <span class="stat-value" id="salesCount">0</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">販売点数</span>
+                <span class="stat-value" id="salesItems">0</span>
+              </div>
+            </div>
+            <div class="history-actions">
+              <button class="action-button export" id="exportButton" type="button">CSV出力</button>
+              <button class="action-button warn" id="resetHistoryButton" type="button">履歴リセット</button>
+            </div>
+            <div class="history-scroll" id="historyWrap"></div>
+          </div>
+        </details>
+
+        <section class="inventory-panel" aria-label="本日の在庫">
           <div class="panel-heading">
-            <h2>本日の販売</h2>
+            <h2>本日の在庫</h2>
+            <span class="category-count">総在庫</span>
           </div>
-          <div class="stats">
-            <div class="stat">
-              <span class="stat-label">売上合計</span>
-              <span class="stat-value" id="salesTotal">¥0</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">販売件数</span>
-              <span class="stat-value" id="salesCount">0</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">販売点数</span>
-              <span class="stat-value" id="salesItems">0</span>
-            </div>
-          </div>
-          <div class="history-actions">
-            <button class="action-button export" id="exportButton" type="button">CSV出力</button>
-            <button class="action-button warn" id="resetHistoryButton" type="button">履歴リセット</button>
-          </div>
-          <div class="history-scroll" id="historyWrap"></div>
+          <div class="inventory-list" id="inventoryList"></div>
         </section>
       </aside>
     </main>
@@ -640,6 +797,7 @@
       todayKey: getTodayKey(),
       cart: {},
       sales: [],
+      stock: {},
       undoStack: []
     };
 
@@ -658,6 +816,7 @@
       exportButton: document.getElementById("exportButton"),
       resetHistoryButton: document.getElementById("resetHistoryButton"),
       historyWrap: document.getElementById("historyWrap"),
+      inventoryList: document.getElementById("inventoryList"),
       toast: document.getElementById("toast")
     };
 
@@ -667,7 +826,7 @@
 
     function init() {
       state.sales = loadSales();
-      renderProducts();
+      state.stock = loadStock();
       render();
       bindEvents();
     }
@@ -691,6 +850,12 @@
       els.exportButton.addEventListener("click", exportCsv);
       els.resetHistoryButton.addEventListener("click", resetHistory);
 
+      els.inventoryList.addEventListener("input", (event) => {
+        const input = event.target.closest("[data-stock-id]");
+        if (!input) return;
+        updateStock(input.dataset.stockId, input.value);
+      });
+
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) ensureToday();
       });
@@ -707,12 +872,17 @@
       return `sabatora-pos-sales-${state.todayKey}`;
     }
 
+    function getStockKey() {
+      return `sabatora-pos-stock-${state.todayKey}`;
+    }
+
     function ensureToday() {
       const currentKey = getTodayKey();
       if (currentKey === state.todayKey) return;
       state.todayKey = currentKey;
       state.cart = {};
       state.sales = loadSales();
+      state.stock = loadStock();
       state.undoStack = [];
       render();
     }
@@ -735,20 +905,49 @@
       }
     }
 
+    function loadStock() {
+      try {
+        const raw = localStorage.getItem(getStockKey());
+        return raw ? JSON.parse(raw) : {};
+      } catch (error) {
+        showToast("在庫数を読み込めませんでした");
+        return {};
+      }
+    }
+
+    function saveStock() {
+      try {
+        localStorage.setItem(getStockKey(), JSON.stringify(state.stock));
+      } catch (error) {
+        alert("在庫数の保存に失敗しました。ブラウザの保存容量を確認してください。");
+      }
+    }
+
     function renderProducts() {
       els.productSections.innerHTML = categoryOrder.map((category) => {
         const items = products.filter((product) => product.category === category);
-        const buttons = items.map((product) => `
-          <button
-            class="product-button${product.highValue ? " high-value" : ""}"
-            type="button"
-            data-product-id="${escapeHtml(product.id)}"
-            data-category="${escapeHtml(product.category)}"
-          >
-            <span class="product-name">${escapeHtml(product.name)}</span>
-            <span class="price">${yen.format(product.price)}</span>
-          </button>
-        `).join("");
+        const buttons = items.map((product) => {
+          const stock = getStockStatus(product.id);
+          const stockBadge = stock.entered
+            ? `<span class="stock-badge ${escapeHtml(stock.tone)}">${escapeHtml(stock.label)}</span>`
+            : "";
+          const disabled = stock.entered && stock.remaining <= 0 ? " disabled" : "";
+
+          return `
+            <button
+              class="product-button${product.highValue ? " high-value" : ""}"
+              type="button"
+              data-product-id="${escapeHtml(product.id)}"
+              data-category="${escapeHtml(product.category)}"${disabled}
+            >
+              <span class="product-name">${escapeHtml(product.name)}</span>
+              <span class="product-footer">
+                <span class="price">${yen.format(product.price)}</span>
+                ${stockBadge}
+              </span>
+            </button>
+          `;
+        }).join("");
 
         return `
           <section class="section-panel" aria-label="${escapeHtml(category)}">
@@ -764,8 +963,10 @@
 
     function render() {
       ensureTodayLabel();
+      renderProducts();
       renderCart();
       renderSales();
+      renderInventory();
       els.undoButton.disabled = state.undoStack.length === 0;
     }
 
@@ -804,20 +1005,25 @@
         return;
       }
 
-      els.cartList.innerHTML = entries.map((item) => `
-        <div class="cart-item">
-          <div>
-            <div class="cart-title">${escapeHtml(item.name)}</div>
-            <div class="cart-meta">
-              ${yen.format(item.price)} × ${item.qty} = ${yen.format(item.subtotal)}
+      els.cartList.innerHTML = entries.map((item) => {
+        const stock = getStockStatus(item.id);
+        const plusDisabled = stock.entered && stock.remaining <= 0 ? " disabled" : "";
+
+        return `
+          <div class="cart-item">
+            <div>
+              <div class="cart-title">${escapeHtml(item.name)}</div>
+              <div class="cart-meta">
+                ${yen.format(item.price)} × ${item.qty} = ${yen.format(item.subtotal)}
+              </div>
+            </div>
+            <div class="qty-tools">
+              <button class="icon-button" type="button" data-cart-action="minus" data-product-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(item.name)}を1点減らす">−</button>
+              <button class="icon-button" type="button" data-cart-action="plus" data-product-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(item.name)}を1点増やす"${plusDisabled}>+</button>
             </div>
           </div>
-          <div class="qty-tools">
-            <button class="icon-button" type="button" data-cart-action="minus" data-product-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(item.name)}を1点減らす">−</button>
-            <button class="icon-button" type="button" data-cart-action="plus" data-product-id="${escapeHtml(item.id)}" aria-label="${escapeHtml(item.name)}を1点増やす">+</button>
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     function renderSales() {
@@ -864,6 +1070,102 @@
       `;
     }
 
+    function renderInventory() {
+      els.inventoryList.innerHTML = products.map((product) => {
+        const initialStock = getInitialStock(product.id);
+        const stock = getStockStatus(product.id);
+
+        return `
+          <div class="inventory-row">
+            <label for="stock-${escapeHtml(product.id)}">
+              <span class="inventory-name">${escapeHtml(product.name)}</span>
+              <span class="inventory-remain ${escapeHtml(stock.tone)}" data-stock-left-id="${escapeHtml(product.id)}">${escapeHtml(stock.entered ? stock.label : "未入力")}</span>
+            </label>
+            <input
+              class="stock-input"
+              id="stock-${escapeHtml(product.id)}"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              data-stock-id="${escapeHtml(product.id)}"
+              value="${initialStock === null ? "" : escapeHtml(initialStock)}"
+              aria-label="${escapeHtml(product.name)}の開始在庫"
+            >
+          </div>
+        `;
+      }).join("");
+    }
+
+    function updateStock(productId, rawValue) {
+      const value = rawValue.trim();
+
+      if (value === "") {
+        delete state.stock[productId];
+      } else {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return;
+        state.stock[productId] = Math.max(0, Math.floor(parsed));
+      }
+
+      saveStock();
+      renderProducts();
+      renderCart();
+      updateStockDisplays();
+    }
+
+    function updateStockDisplays() {
+      products.forEach((product) => {
+        const stock = getStockStatus(product.id);
+        document.querySelectorAll(`[data-stock-left-id="${product.id}"]`).forEach((element) => {
+          element.textContent = stock.entered ? stock.label : "未入力";
+          element.className = `inventory-remain ${stock.tone}`;
+        });
+      });
+    }
+
+    function getInitialStock(productId) {
+      const value = state.stock[productId];
+      if (value === undefined || value === null || value === "") return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function getRemainingQty(productId) {
+      const initialStock = getInitialStock(productId);
+      if (initialStock === null) return null;
+      return initialStock - getSoldQty(productId) - (state.cart[productId] || 0);
+    }
+
+    function getSoldQty(productId) {
+      return state.sales.reduce((sum, sale) => {
+        return sum + sale.items.reduce((itemSum, item) => {
+          return itemSum + (item.id === productId ? item.qty : 0);
+        }, 0);
+      }, 0);
+    }
+
+    function getStockStatus(productId) {
+      const remaining = getRemainingQty(productId);
+      if (remaining === null) {
+        return { entered: false, label: "未入力", tone: "unset", remaining: null };
+      }
+
+      if (remaining < 0) {
+        return { entered: true, label: `超過${Math.abs(remaining)}`, tone: "over", remaining };
+      }
+
+      if (remaining === 0) {
+        return { entered: true, label: "在庫なし", tone: "soldout", remaining };
+      }
+
+      if (remaining <= 2) {
+        return { entered: true, label: `残り${remaining}`, tone: "low", remaining };
+      }
+
+      return { entered: true, label: `残り${remaining}`, tone: "ok", remaining };
+    }
+
     function pushUndo(label) {
       state.undoStack.push({
         label,
@@ -888,6 +1190,12 @@
       const product = productById.get(productId);
       if (!product) return;
 
+      const stock = getStockStatus(productId);
+      if (stock.entered && stock.remaining <= 0) {
+        showToast("在庫がありません");
+        return;
+      }
+
       if (product.highValue) {
         const ok = confirm(`${product.name}\n${yen.format(product.price)}\n\n高額商品をカートに追加しますか？`);
         if (!ok) return;
@@ -903,6 +1211,12 @@
       ensureToday();
       if (!state.cart[productId]) return;
       const product = productById.get(productId);
+
+      const stock = getStockStatus(productId);
+      if (action === "plus" && stock.entered && stock.remaining <= 0) {
+        showToast("在庫がありません");
+        return;
+      }
 
       pushUndo(action);
       if (action === "plus") {
@@ -947,7 +1261,18 @@
       state.cart = {};
       saveSales();
       render();
-      showToast(`${sale.id} / ${yen.format(total)} を記録しました`);
+      scrollToRegisterTop();
+      showToast(`記録しました / ${yen.format(total)}`);
+    }
+
+    function scrollToRegisterTop() {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.requestAnimationFrame(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: prefersReducedMotion ? "auto" : "smooth"
+        });
+      });
     }
 
     function getNextTransactionId() {
