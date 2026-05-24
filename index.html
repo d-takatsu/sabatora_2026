@@ -542,9 +542,8 @@
 
     .inventory-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 96px;
-      gap: 8px;
-      align-items: center;
+      grid-template-columns: 1fr;
+      gap: 10px;
       padding: 10px;
       background: #f9fafb;
       border: 1px solid var(--line);
@@ -558,6 +557,21 @@
       font-weight: 850;
       line-height: 1.25;
       overflow-wrap: anywhere;
+    }
+
+    .field-label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .inventory-edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
 
     .inventory-remain {
@@ -590,6 +604,8 @@
       background: var(--red);
     }
 
+    .name-input,
+    .price-input,
     .stock-input {
       width: 100%;
       min-height: 48px;
@@ -601,6 +617,12 @@
       font-size: 20px;
       font-weight: 950;
       text-align: center;
+    }
+
+    .name-input {
+      font-size: 16px;
+      line-height: 1.25;
+      text-align: left;
     }
 
     table {
@@ -797,6 +819,7 @@
       todayKey: getTodayKey(),
       cart: {},
       sales: [],
+      catalog: {},
       stock: {},
       undoStack: []
     };
@@ -826,6 +849,7 @@
 
     function init() {
       state.sales = loadSales();
+      state.catalog = loadCatalog();
       state.stock = loadStock();
       render();
       bindEvents();
@@ -851,9 +875,22 @@
       els.resetHistoryButton.addEventListener("click", resetHistory);
 
       els.inventoryList.addEventListener("input", (event) => {
-        const input = event.target.closest("[data-stock-id]");
-        if (!input) return;
-        updateStock(input.dataset.stockId, input.value);
+        const stockInput = event.target.closest("[data-stock-id]");
+        if (stockInput) {
+          updateStock(stockInput.dataset.stockId, stockInput.value);
+          return;
+        }
+
+        const nameInput = event.target.closest("[data-name-id]");
+        if (nameInput) {
+          updateProductName(nameInput.dataset.nameId, nameInput.value);
+          return;
+        }
+
+        const priceInput = event.target.closest("[data-price-id]");
+        if (priceInput) {
+          updateProductPrice(priceInput.dataset.priceId, priceInput.value);
+        }
       });
 
       document.addEventListener("visibilitychange", () => {
@@ -876,12 +913,17 @@
       return `sabatora-pos-stock-${state.todayKey}`;
     }
 
+    function getCatalogKey() {
+      return `sabatora-pos-catalog-${state.todayKey}`;
+    }
+
     function ensureToday() {
       const currentKey = getTodayKey();
       if (currentKey === state.todayKey) return;
       state.todayKey = currentKey;
       state.cart = {};
       state.sales = loadSales();
+      state.catalog = loadCatalog();
       state.stock = loadStock();
       state.undoStack = [];
       render();
@@ -923,11 +965,66 @@
       }
     }
 
+    function loadCatalog() {
+      try {
+        const raw = localStorage.getItem(getCatalogKey());
+        return raw ? JSON.parse(raw) : {};
+      } catch (error) {
+        showToast("商品設定を読み込めませんでした");
+        return {};
+      }
+    }
+
+    function saveCatalog() {
+      try {
+        localStorage.setItem(getCatalogKey(), JSON.stringify(state.catalog));
+      } catch (error) {
+        alert("商品設定の保存に失敗しました。ブラウザの保存容量を確認してください。");
+      }
+    }
+
+    function getProduct(productId) {
+      const baseProduct = productById.get(productId);
+      if (!baseProduct) return null;
+
+      const override = state.catalog[productId] || {};
+      const overrideName = typeof override.name === "string" ? override.name.trim() : "";
+      const overridePrice = Number(override.price);
+      const hasOverridePrice = override.price !== undefined && override.price !== "" && Number.isFinite(overridePrice);
+
+      return {
+        ...baseProduct,
+        name: overrideName || baseProduct.name,
+        price: hasOverridePrice ? Math.max(0, Math.floor(overridePrice)) : baseProduct.price
+      };
+    }
+
+    function setCatalogValue(productId, key, value) {
+      const baseProduct = productById.get(productId);
+      if (!baseProduct) return;
+
+      const next = { ...(state.catalog[productId] || {}) };
+      if (value === "" || value === null || value === undefined) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+
+      if (!next.name && next.price === undefined) {
+        delete state.catalog[productId];
+      } else {
+        state.catalog[productId] = next;
+      }
+
+      saveCatalog();
+    }
+
     function renderProducts() {
       els.productSections.innerHTML = categoryOrder.map((category) => {
         const items = products.filter((product) => product.category === category);
-        const buttons = items.map((product) => {
-          const stock = getStockStatus(product.id);
+        const buttons = items.map((baseProduct) => {
+          const product = getProduct(baseProduct.id);
+          const stock = getStockStatus(baseProduct.id);
           const stockBadge = stock.entered
             ? `<span class="stock-badge ${escapeHtml(stock.tone)}">${escapeHtml(stock.label)}</span>`
             : "";
@@ -935,10 +1032,10 @@
 
           return `
             <button
-              class="product-button${product.highValue ? " high-value" : ""}"
+              class="product-button${baseProduct.highValue ? " high-value" : ""}"
               type="button"
-              data-product-id="${escapeHtml(product.id)}"
-              data-category="${escapeHtml(product.category)}"${disabled}
+              data-product-id="${escapeHtml(baseProduct.id)}"
+              data-category="${escapeHtml(baseProduct.category)}"${disabled}
             >
               <span class="product-name">${escapeHtml(product.name)}</span>
               <span class="product-footer">
@@ -979,7 +1076,7 @@
     function getCartEntries() {
       return Object.entries(state.cart)
         .map(([id, qty]) => {
-          const product = productById.get(id);
+          const product = getProduct(id);
           if (!product || qty <= 0) return null;
           return {
             id,
@@ -1042,7 +1139,7 @@
       }
 
       const rows = state.sales.slice().reverse().map((sale) => {
-        const items = sale.items.map((item) => `${escapeHtml(item.name)} × ${item.qty}`).join("<br>");
+        const items = sale.items.map((item) => `${escapeHtml(getSaleItemName(item))} × ${item.qty}`).join("<br>");
         return `
           <tr>
             <td>${escapeHtml(formatTime(sale.timestamp))}</td>
@@ -1071,27 +1168,56 @@
     }
 
     function renderInventory() {
-      els.inventoryList.innerHTML = products.map((product) => {
-        const initialStock = getInitialStock(product.id);
-        const stock = getStockStatus(product.id);
+      els.inventoryList.innerHTML = products.map((baseProduct) => {
+        const product = getProduct(baseProduct.id);
+        const initialStock = getInitialStock(baseProduct.id);
+        const stock = getStockStatus(baseProduct.id);
 
         return `
           <div class="inventory-row">
-            <label for="stock-${escapeHtml(product.id)}">
-              <span class="inventory-name">${escapeHtml(product.name)}</span>
-              <span class="inventory-remain ${escapeHtml(stock.tone)}" data-stock-left-id="${escapeHtml(product.id)}">${escapeHtml(stock.entered ? stock.label : "未入力")}</span>
+            <label class="field-label" for="name-${escapeHtml(baseProduct.id)}">
+              商品名
+              <input
+                class="name-input"
+                id="name-${escapeHtml(baseProduct.id)}"
+                type="text"
+                data-name-id="${escapeHtml(baseProduct.id)}"
+                value="${escapeHtml(product.name)}"
+                autocomplete="off"
+                aria-label="${escapeHtml(product.name)}の商品名"
+              >
             </label>
-            <input
-              class="stock-input"
-              id="stock-${escapeHtml(product.id)}"
-              type="number"
-              min="0"
-              step="1"
-              inputmode="numeric"
-              data-stock-id="${escapeHtml(product.id)}"
-              value="${initialStock === null ? "" : escapeHtml(initialStock)}"
-              aria-label="${escapeHtml(product.name)}の開始在庫"
-            >
+            <div class="inventory-edit-grid">
+              <label class="field-label" for="price-${escapeHtml(baseProduct.id)}">
+                金額
+                <input
+                  class="price-input"
+                  id="price-${escapeHtml(baseProduct.id)}"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  data-price-id="${escapeHtml(baseProduct.id)}"
+                  value="${escapeHtml(product.price)}"
+                  aria-label="${escapeHtml(product.name)}の金額"
+                >
+              </label>
+              <label class="field-label" for="stock-${escapeHtml(baseProduct.id)}">
+                総在庫
+                <input
+                  class="stock-input"
+                  id="stock-${escapeHtml(baseProduct.id)}"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  data-stock-id="${escapeHtml(baseProduct.id)}"
+                  value="${initialStock === null ? "" : escapeHtml(initialStock)}"
+                  aria-label="${escapeHtml(product.name)}の開始在庫"
+                >
+              </label>
+            </div>
+            <span class="inventory-remain ${escapeHtml(stock.tone)}" data-stock-left-id="${escapeHtml(baseProduct.id)}">${escapeHtml(stock.entered ? stock.label : "未入力")}</span>
           </div>
         `;
       }).join("");
@@ -1112,6 +1238,35 @@
       renderProducts();
       renderCart();
       updateStockDisplays();
+    }
+
+    function updateProductName(productId, rawValue) {
+      const value = rawValue.trim();
+      const baseProduct = productById.get(productId);
+      if (!baseProduct) return;
+
+      setCatalogValue(productId, "name", value === baseProduct.name ? "" : value);
+      renderProducts();
+      renderCart();
+      renderSales();
+    }
+
+    function updateProductPrice(productId, rawValue) {
+      const value = rawValue.trim();
+      const baseProduct = productById.get(productId);
+      if (!baseProduct) return;
+
+      if (value === "") {
+        setCatalogValue(productId, "price", "");
+      } else {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return;
+        const price = Math.max(0, Math.floor(parsed));
+        setCatalogValue(productId, "price", price === baseProduct.price ? "" : price);
+      }
+
+      renderProducts();
+      renderCart();
     }
 
     function updateStockDisplays() {
@@ -1143,6 +1298,11 @@
           return itemSum + (item.id === productId ? item.qty : 0);
         }, 0);
       }, 0);
+    }
+
+    function getSaleItemName(item) {
+      const product = getProduct(item.id);
+      return product ? product.name : item.name;
     }
 
     function getStockStatus(productId) {
@@ -1187,7 +1347,7 @@
 
     function addProduct(productId) {
       ensureToday();
-      const product = productById.get(productId);
+      const product = getProduct(productId);
       if (!product) return;
 
       const stock = getStockStatus(productId);
@@ -1210,7 +1370,7 @@
     function changeCartQty(productId, action) {
       ensureToday();
       if (!state.cart[productId]) return;
-      const product = productById.get(productId);
+      const product = getProduct(productId);
 
       const stock = getStockStatus(productId);
       if (action === "plus" && stock.entered && stock.remaining <= 0) {
@@ -1309,15 +1469,17 @@
         ["日付", state.todayKey],
         [],
         ["本日の在庫"],
-        ["商品名", "総在庫", "販売済み", "残数"]
+        ["商品名", "金額(税込)", "総在庫", "販売済み", "残数"]
       ];
 
-      products.forEach((product) => {
-        const initialStock = getInitialStock(product.id);
-        const soldQty = getSoldQty(product.id);
-        const remainingQty = getRemainingQty(product.id);
+      products.forEach((baseProduct) => {
+        const product = getProduct(baseProduct.id);
+        const initialStock = getInitialStock(baseProduct.id);
+        const soldQty = getSoldQty(baseProduct.id);
+        const remainingQty = getRemainingQty(baseProduct.id);
         rows.push([
           product.name,
+          product.price,
           initialStock === null ? "" : initialStock,
           soldQty,
           remainingQty === null ? "" : remainingQty
@@ -1335,7 +1497,7 @@
           rows.push([
             index === 0 ? formatDateTime(sale.timestamp) : "",
             index === 0 ? sale.id : "",
-            item.name,
+            getSaleItemName(item),
             item.price,
             item.qty,
             item.subtotal,
